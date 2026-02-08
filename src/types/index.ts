@@ -2,16 +2,9 @@ export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: string;
   image: string;
   category: string;
-}
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  isAdmin: boolean;
 }
 
 export interface ContactSettings {
@@ -20,10 +13,16 @@ export interface ContactSettings {
   telegram: string;
 }
 
-export interface Inquiry {
+export interface CustomerInquiry {
   id: string;
+  productId: string;
   productName: string;
-  customerName: string;
   platform: 'whatsapp' | 'instagram' | 'telegram';
-  timestamp: Date;
+  timestamp: string;
+}
+
+export interface AppData {
+  products: Product[];
+  contactSettings: ContactSettings;
+  inquiries: CustomerInquiry[];
 }
