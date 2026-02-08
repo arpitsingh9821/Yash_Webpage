@@ -1,72 +1,77 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { ProductCard } from './ProductCard';
+import ProductCard from './ProductCard';
 
-export const HomePage: React.FC = () => {
-  const { products, contactSettings, isLoading } = useApp();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+const HomePage: React.FC = () => {
+  const { products, isLoading } = useApp();
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative py-12 sm:py-20 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-950/30 via-black to-black" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-red-600/20 rounded-full blur-[120px]" />
-        
-        <div className="relative max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white mb-4 sm:mb-6">
-            EMBRACE THE <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-700">DARKNESS</span>
+      <section id="home" className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-red-950">
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600 rounded-full filter blur-[128px]" />
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-800 rounded-full filter blur-[128px]" />
+          </div>
+        </div>
+
+        <div className="relative z-10 text-center px-4">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+            Always <span className="text-red-500">Demon</span>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-8 px-4">
-            Discover our exclusive collection of premium streetwear designed for those who dare to be different.
+          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            Unleash your inner demon with our exclusive collection of premium streetwear
           </p>
-          <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-            <a href="#products" className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-red-900/30">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="#products"
+              className="px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg hover:shadow-red-500/25 transform hover:-translate-y-1"
+            >
               Shop Now
             </a>
-            <a href="#about" className="px-6 sm:px-8 py-3 sm:py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl transition-all duration-300">
+            <a
+              href="#about"
+              className="px-8 py-4 border-2 border-red-500 text-red-500 font-semibold rounded-xl hover:bg-red-500 hover:text-white transition-all"
+            >
               Learn More
             </a>
           </div>
         </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+          <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </div>
       </section>
 
       {/* Products Section */}
-      <section id="products" className="py-12 sm:py-16 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
+      <section id="products" className="py-20 bg-gray-950">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-white mb-4">
               Our <span className="text-red-500">Products</span>
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto text-sm sm:text-base">
-              Browse our handpicked selection of premium products. Click to contact us through your preferred platform.
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Discover our handpicked collection of premium demon-themed streetwear
             </p>
           </div>
 
-          {products.length === 0 ? (
-            <div className="text-center py-16 sm:py-20">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <svg className="w-10 h-10 sm:w-12 sm:h-12 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">No Products Available</h3>
-              <p className="text-gray-400">Check back soon for new arrivals!</p>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-20 text-gray-400">
+              <p>No products available at the moment.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {products.map((product) => (
-                <ProductCard key={product.id} product={product} contactSettings={contactSettings} />
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           )}
@@ -74,44 +79,30 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-12 sm:py-16 px-4 bg-gradient-to-b from-gray-950 to-black">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8 sm:gap-12 items-center">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 sm:mb-6">
-                About <span className="text-red-500">Always Demon</span>
-              </h2>
-              <p className="text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
-                We are a premium streetwear brand dedicated to creating unique, high-quality apparel for those who embrace their individuality. Our designs are inspired by darkness, mystery, and the unconventional.
-              </p>
-              <p className="text-gray-400 mb-6 sm:mb-8 text-sm sm:text-base">
-                Every piece is crafted with attention to detail and made from premium materials to ensure comfort and durability. Join the demon family today.
-              </p>
-              <div className="flex flex-wrap gap-4 sm:gap-6">
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-red-500">500+</div>
-                  <div className="text-xs sm:text-sm text-gray-400">Happy Customers</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-red-500">50+</div>
-                  <div className="text-xs sm:text-sm text-gray-400">Products</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl sm:text-3xl font-bold text-red-500">24/7</div>
-                  <div className="text-xs sm:text-sm text-gray-400">Support</div>
-                </div>
+      <section id="about" className="py-20 bg-gradient-to-b from-gray-950 to-black">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-4xl font-bold text-white mb-6">
+              About <span className="text-red-500">Us</span>
+            </h2>
+            <p className="text-gray-300 text-lg mb-8">
+              Always Demon is more than just a brand - it's a lifestyle. We create premium streetwear 
+              for those who dare to be different, who embrace their inner demon and wear it proudly. 
+              Our designs are bold, our quality is unmatched, and our community is unstoppable.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+                <div className="text-4xl font-bold text-red-500 mb-2">1000+</div>
+                <div className="text-gray-400">Happy Customers</div>
               </div>
-            </div>
-            <div className="relative order-first md:order-last">
-              <div className="aspect-square rounded-2xl overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=600&fit=crop"
-                  alt="About Always Demon"
-                  className="w-full h-full object-cover"
-                />
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+                <div className="text-4xl font-bold text-red-500 mb-2">50+</div>
+                <div className="text-gray-400">Unique Designs</div>
               </div>
-              <div className="absolute -bottom-4 -right-4 sm:-bottom-6 sm:-right-6 w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-red-600 to-red-800 rounded-2xl flex items-center justify-center">
-                <span className="text-white font-bold text-center text-xs sm:text-sm">Premium<br/>Quality</span>
+              <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+                <div className="text-4xl font-bold text-red-500 mb-2">5⭐</div>
+                <div className="text-gray-400">Customer Rating</div>
               </div>
             </div>
           </div>
@@ -119,13 +110,26 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-6 sm:py-8 px-4 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto text-center">
-          <p className="text-gray-400 text-sm sm:text-base">
-            © 2024 Always Demon. All rights reserved.
-          </p>
+      <footer className="bg-black py-12 border-t border-gray-800">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-red-600 to-red-800 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">👹</span>
+              </div>
+              <span className="text-xl font-bold text-white">
+                Always <span className="text-red-500">Demon</span>
+              </span>
+            </div>
+            
+            <p className="text-gray-500 text-sm">
+              © 2024 Always Demon. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
   );
 };
+
+export default HomePage;

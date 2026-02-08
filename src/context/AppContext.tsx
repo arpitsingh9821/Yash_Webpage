@@ -1,116 +1,169 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Product, ContactSettings, CustomerInquiry } from '../types';
-import { productsAPI, settingsAPI, inquiriesAPI } from '../services/api';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { productsAPI, contactsAPI, inquiriesAPI } from '../services/api';
+import { useAuth } from './AuthContext';
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  category: string;
+}
+
+export interface ContactSettings {
+  whatsapp: string;
+  instagram: string;
+  telegram: string;
+}
+
+export interface Inquiry {
+  id: string;
+  productName: string;
+  customerName: string;
+  platform: 'whatsapp' | 'instagram' | 'telegram';
+  timestamp: Date;
+}
 
 interface AppContextType {
   products: Product[];
   contactSettings: ContactSettings;
-  inquiries: CustomerInquiry[];
+  inquiries: Inquiry[];
   isLoading: boolean;
-  refreshProducts: () => Promise<void>;
-  refreshInquiries: () => Promise<void>;
   addProduct: (product: Omit<Product, 'id'>) => Promise<void>;
-  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
-  updateContactSettings: (settings: ContactSettings) => Promise<void>;
-  addInquiry: (inquiry: Omit<CustomerInquiry, 'id' | 'timestamp'>) => Promise<void>;
+  updateContactSettings: (settings: Partial<ContactSettings>) => Promise<void>;
+  addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => Promise<void>;
+  deleteInquiry: (id: string) => Promise<void>;
+  refreshData: () => Promise<void>;
 }
-
-const defaultContactSettings: ContactSettings = {
-  whatsapp: '+1234567890',
-  instagram: 'always_demon',
-  telegram: 'always_demon',
-};
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [contactSettings, setContactSettings] = useState<ContactSettings>(defaultContactSettings);
-  const [inquiries, setInquiries] = useState<CustomerInquiry[]>([]);
+  const [contactSettings, setContactSettings] = useState<ContactSettings>({
+    whatsapp: '919876543210',
+    instagram: 'always.demon',
+    telegram: 'alwaysdemon'
+  });
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshProducts = useCallback(async () => {
+  const refreshData = async () => {
+    setIsLoading(true);
     try {
-      const data = await productsAPI.getAll();
-      setProducts(data);
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-    }
-  }, []);
+      // Fetch products
+      const productsResponse = await productsAPI.getAll();
+      setProducts(productsResponse.products);
 
-  const refreshInquiries = useCallback(async () => {
-    try {
-      const data = await inquiriesAPI.getAll();
-      setInquiries(data);
-    } catch (error) {
-      console.error('Failed to fetch inquiries:', error);
-    }
-  }, []);
+      // Fetch contacts
+      const contactsResponse = await contactsAPI.get();
+      setContactSettings(contactsResponse.contacts);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [productsData, settingsData, inquiriesData] = await Promise.all([
-          productsAPI.getAll(),
-          settingsAPI.getContact(),
-          inquiriesAPI.getAll(),
-        ]);
-        setProducts(productsData);
-        setContactSettings(settingsData);
-        setInquiries(inquiriesData);
-      } catch (error) {
-        console.error('Failed to load data:', error);
-      } finally {
-        setIsLoading(false);
+      // Fetch inquiries if admin
+      if (user?.isAdmin) {
+        try {
+          const inquiriesResponse = await inquiriesAPI.getAll();
+          setInquiries(inquiriesResponse.inquiries);
+        } catch {
+          // Not admin or error fetching inquiries
+        }
       }
-    };
-
-    loadData();
-  }, []);
-
-  const addProduct = async (product: Omit<Product, 'id'>) => {
-    const newProduct = await productsAPI.create(product);
-    setProducts(prev => [...prev, newProduct]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateProduct = async (id: string, updates: Partial<Product>) => {
-    const updated = await productsAPI.update(id, updates);
-    setProducts(prev => prev.map(p => p.id === id ? updated : p));
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshData();
+    }
+  }, [isAuthenticated, user?.isAdmin]);
+
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    try {
+      const response = await productsAPI.create({
+        ...product,
+        price: Number(product.price)
+      });
+      setProducts(prev => [...prev, response.product]);
+    } catch (error) {
+      console.error('Error adding product:', error);
+      throw error;
+    }
+  };
+
+  const updateProduct = async (id: string, product: Partial<Product>) => {
+    try {
+      await productsAPI.update(id, {
+        ...product,
+        price: product.price ? Number(product.price) : undefined
+      });
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, ...product } : p));
+    } catch (error) {
+      console.error('Error updating product:', error);
+      throw error;
+    }
   };
 
   const deleteProduct = async (id: string) => {
-    await productsAPI.delete(id);
-    setProducts(prev => prev.filter(p => p.id !== id));
+    try {
+      await productsAPI.delete(id);
+      setProducts(prev => prev.filter(p => p.id !== id));
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      throw error;
+    }
   };
 
-  const updateContactSettings = async (settings: ContactSettings) => {
-    const updated = await settingsAPI.updateContact(settings);
-    setContactSettings(updated);
+  const updateContactSettings = async (settings: Partial<ContactSettings>) => {
+    try {
+      await contactsAPI.update(settings);
+      setContactSettings(prev => ({ ...prev, ...settings }));
+    } catch (error) {
+      console.error('Error updating contacts:', error);
+      throw error;
+    }
   };
 
-  const addInquiry = async (inquiry: Omit<CustomerInquiry, 'id' | 'timestamp'>) => {
-    const newInquiry = await inquiriesAPI.create(inquiry);
-    setInquiries(prev => [newInquiry, ...prev]);
+  const addInquiry = async (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => {
+    try {
+      await inquiriesAPI.create(inquiry);
+    } catch (error) {
+      console.error('Error adding inquiry:', error);
+      // Don't throw - inquiry tracking is not critical
+    }
+  };
+
+  const deleteInquiry = async (id: string) => {
+    try {
+      await inquiriesAPI.delete(id);
+      setInquiries(prev => prev.filter(i => i.id !== id));
+    } catch (error) {
+      console.error('Error deleting inquiry:', error);
+      throw error;
+    }
   };
 
   return (
-    <AppContext.Provider
-      value={{
-        products,
-        contactSettings,
-        inquiries,
-        isLoading,
-        refreshProducts,
-        refreshInquiries,
-        addProduct,
-        updateProduct,
-        deleteProduct,
-        updateContactSettings,
-        addInquiry,
-      }}
-    >
+    <AppContext.Provider value={{
+      products,
+      contactSettings,
+      inquiries,
+      isLoading,
+      addProduct,
+      updateProduct,
+      deleteProduct,
+      updateContactSettings,
+      addInquiry,
+      deleteInquiry,
+      refreshData
+    }}>
       {children}
     </AppContext.Provider>
   );
@@ -118,8 +171,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within AppProvider');
+  if (context === undefined) {
+    throw new Error('useApp must be used within an AppProvider');
   }
   return context;
 };
