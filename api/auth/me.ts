@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../lib/mongodb';
-import { parseToken } from '../lib/auth';
+import { extractToken } from '../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
@@ -18,19 +17,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const tokenPayload = parseToken(req.headers.authorization);
+    const token = extractToken(req.headers.authorization);
 
-    if (!tokenPayload) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
     }
 
     const { db } = await connectToDatabase();
     const usersCollection = db.collection('users');
 
-    const user = await usersCollection.findOne({ _id: new ObjectId(tokenPayload.userId) });
+    // Find user by token
+    const user = await usersCollection.findOne({ token });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(401).json({ error: 'Invalid token' });
     }
 
     return res.status(200).json({
@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: user._id.toString(),
         username: user.username,
         email: user.email,
-        isAdmin: user.isAdmin || false
+        isAdmin: user.isAdmin
       }
     });
   } catch (error) {

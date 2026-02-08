@@ -1,12 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { connectToDatabase } from '../lib/mongodb';
-import { parseToken } from '../lib/auth';
-
-const defaultContacts = {
-  whatsapp: '919876543210',
-  instagram: 'always.demon',
-  telegram: 'alwaysdemon'
-};
+import { extractToken } from '../lib/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
@@ -20,54 +14,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { db } = await connectToDatabase();
-    const settingsCollection = db.collection('settings');
+    const contactsCollection = db.collection('contacts');
 
-    // Initialize default contacts if not exists
-    const existingContacts = await settingsCollection.findOne({ type: 'contacts' });
-    if (!existingContacts) {
-      await settingsCollection.insertOne({ type: 'contacts', ...defaultContacts, createdAt: new Date() });
-    }
-
-    // GET - Fetch contacts
+    // GET - Fetch contact settings (public)
     if (req.method === 'GET') {
-      const contacts = await settingsCollection.findOne({ type: 'contacts' });
+      let contacts = await contactsCollection.findOne({ type: 'settings' });
+      
+      // Initialize default contacts if not exists
+      if (!contacts) {
+        const defaultContacts = {
+          type: 'settings',
+          whatsapp: '+1234567890',
+          instagram: 'always_demon',
+          telegram: 'always_demon'
+        };
+        await contactsCollection.insertOne(defaultContacts);
+        contacts = defaultContacts;
+      }
+
       return res.status(200).json({
-        contacts: {
-          whatsapp: contacts?.whatsapp || defaultContacts.whatsapp,
-          instagram: contacts?.instagram || defaultContacts.instagram,
-          telegram: contacts?.telegram || defaultContacts.telegram
-        }
+        whatsapp: contacts.whatsapp,
+        instagram: contacts.instagram,
+        telegram: contacts.telegram
       });
     }
 
-    // PUT - Update contacts (admin only)
+    // PUT - Update contact settings (admin only)
     if (req.method === 'PUT') {
-      const tokenPayload = parseToken(req.headers.authorization);
-      if (!tokenPayload || !tokenPayload.isAdmin) {
+      const token = extractToken(req.headers.authorization);
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const usersCollection = db.collection('users');
+      const user = await usersCollection.findOne({ token });
+      if (!user || !user.isAdmin) {
         return res.status(403).json({ error: 'Admin access required' });
       }
 
       const { whatsapp, instagram, telegram } = req.body;
 
-      await settingsCollection.updateOne(
-        { type: 'contacts' },
-        { 
-          $set: { 
-            whatsapp: whatsapp || defaultContacts.whatsapp,
-            instagram: instagram || defaultContacts.instagram,
-            telegram: telegram || defaultContacts.telegram,
-            updatedAt: new Date()
-          } 
-        },
+      await contactsCollection.updateOne(
+        { type: 'settings' },
+        { $set: { whatsapp, instagram, telegram, updatedAt: new Date() } },
         { upsert: true }
       );
 
-      return res.status(200).json({ message: 'Contacts updated successfully' });
+      return res.status(200).json({ whatsapp, instagram, telegram });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Contacts error:', error);
+    console.error('Contacts API error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

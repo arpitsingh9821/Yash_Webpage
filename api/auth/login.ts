@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '../lib/mongodb';
 import { generateToken } from '../lib/auth';
+import bcrypt from 'bcryptjs';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const usersCollection = db.collection('users');
 
     // Find user
-    const user = await usersCollection.findOne({ username: username.toLowerCase() });
+    const user = await usersCollection.findOne({ username });
 
     if (!user) {
       return res.status(401).json({ error: 'Invalid username or password' });
@@ -41,22 +41,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // Generate token
-    const token = generateToken({
-      userId: user._id.toString(),
-      username: user.username,
-      isAdmin: user.isAdmin || false
-    });
+    // Generate new session token
+    const token = generateToken();
+
+    // Update token in database
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { token } }
+    );
 
     return res.status(200).json({
-      message: 'Login successful',
-      token,
       user: {
         id: user._id.toString(),
         username: user.username,
         email: user.email,
-        isAdmin: user.isAdmin || false
-      }
+        isAdmin: user.isAdmin
+      },
+      token
     });
   } catch (error) {
     console.error('Login error:', error);

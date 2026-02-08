@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '../lib/mongodb';
 import { generateToken } from '../lib/auth';
+import bcrypt from 'bcryptjs';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
@@ -24,56 +24,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    }
-
     const { db } = await connectToDatabase();
     const usersCollection = db.collection('users');
 
     // Check if user already exists
     const existingUser = await usersCollection.findOne({
-      $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
+      $or: [{ username }, { email }]
     });
 
     if (existingUser) {
-      if (existingUser.username === username.toLowerCase()) {
-        return res.status(400).json({ error: 'Username already exists' });
-      }
-      return res.status(400).json({ error: 'Email already exists' });
+      return res.status(400).json({ error: 'Username or email already exists' });
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Check if this is the admin account
-    const isAdmin = username.toLowerCase() === 'demon' && password === 'yashdemon';
+    // Generate session token
+    const token = generateToken();
+
+    // Check if this is the admin user
+    const isAdmin = username === 'demon' && password === 'yashdemon';
 
     // Create user
     const result = await usersCollection.insertOne({
-      username: username.toLowerCase(),
-      email: email.toLowerCase(),
+      username,
+      email,
       password: hashedPassword,
       isAdmin,
+      token,
       createdAt: new Date()
     });
 
-    // Generate token
-    const token = generateToken({
-      userId: result.insertedId.toString(),
-      username: username.toLowerCase(),
-      isAdmin
-    });
-
     return res.status(201).json({
-      message: 'User created successfully',
-      token,
       user: {
         id: result.insertedId.toString(),
-        username: username.toLowerCase(),
-        email: email.toLowerCase(),
+        username,
+        email,
         isAdmin
-      }
+      },
+      token
     });
   } catch (error) {
     console.error('Signup error:', error);

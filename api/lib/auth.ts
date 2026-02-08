@@ -1,29 +1,19 @@
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'always-demon-secret-key-2024';
+import crypto from 'crypto';
 
 export interface TokenPayload {
   userId: string;
   username: string;
   isAdmin: boolean;
+  token: string;
 }
 
-export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+export function generateToken(): string {
+  return crypto.randomBytes(32).toString('hex');
 }
 
-export function verifyToken(token: string): TokenPayload | null {
-  try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
-  } catch {
-    return null;
-  }
-}
-
-export function parseToken(authHeader: string | undefined): TokenPayload | null {
+export function extractToken(authHeader: string | undefined): string | null {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
-  const token = authHeader.substring(7);
-  return verifyToken(token);
+  return authHeader.substring(7);
 }

@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../lib/mongodb';
-import { parseToken } from '../lib/auth';
+import { extractToken } from '../lib/auth';
+import { ObjectId } from 'mongodb';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
@@ -16,74 +16,66 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { db } = await connectToDatabase();
     const inquiriesCollection = db.collection('inquiries');
+    const usersCollection = db.collection('users');
 
-    // GET - Fetch all inquiries (admin only)
-    if (req.method === 'GET') {
-      const tokenPayload = parseToken(req.headers.authorization);
-      if (!tokenPayload || !tokenPayload.isAdmin) {
-        return res.status(403).json({ error: 'Admin access required' });
-      }
-
-      const inquiries = await inquiriesCollection.find({}).sort({ createdAt: -1 }).toArray();
-      return res.status(200).json({
-        inquiries: inquiries.map(i => ({
-          id: i._id.toString(),
-          productName: i.productName,
-          customerName: i.customerName,
-          platform: i.platform,
-          timestamp: i.createdAt
-        }))
-      });
-    }
-
-    // POST - Create new inquiry
+    // POST - Create inquiry (public - when user clicks contact)
     if (req.method === 'POST') {
-      const { productName, customerName, platform } = req.body;
-      
-      if (!productName || !platform) {
-        return res.status(400).json({ error: 'Product name and platform are required' });
-      }
+      const { productId, productName, platform, username } = req.body;
 
       const result = await inquiriesCollection.insertOne({
+        productId,
         productName,
-        customerName: customerName || 'Anonymous',
         platform,
+        username: username || 'Guest',
         createdAt: new Date()
       });
 
       return res.status(201).json({
-        message: 'Inquiry recorded successfully',
-        inquiry: {
-          id: result.insertedId.toString(),
-          productName,
-          customerName: customerName || 'Anonymous',
-          platform,
-          timestamp: new Date()
-        }
+        id: result.insertedId.toString(),
+        productId,
+        productName,
+        platform,
+        username: username || 'Guest',
+        createdAt: new Date().toISOString()
       });
     }
 
-    // DELETE - Delete inquiry (admin only)
-    if (req.method === 'DELETE') {
-      const tokenPayload = parseToken(req.headers.authorization);
-      if (!tokenPayload || !tokenPayload.isAdmin) {
-        return res.status(403).json({ error: 'Admin access required' });
-      }
+    // GET and DELETE require admin auth
+    const token = extractToken(req.headers.authorization);
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
+    const user = await usersCollection.findOne({ token });
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+
+    // GET - Fetch all inquiries (admin only)
+    if (req.method === 'GET') {
+      const inquiries = await inquiriesCollection.find({}).sort({ createdAt: -1 }).toArray();
+      return res.status(200).json(inquiries.map(i => ({
+        id: i._id.toString(),
+        productId: i.productId,
+        productName: i.productName,
+        platform: i.platform,
+        username: i.username,
+        createdAt: i.createdAt
+      })));
+    }
+
+    // DELETE - Delete inquiry
+    if (req.method === 'DELETE') {
       const { id } = req.body;
       
-      if (!id) {
-        return res.status(400).json({ error: 'Inquiry ID is required' });
-      }
-
       await inquiriesCollection.deleteOne({ _id: new ObjectId(id) });
 
-      return res.status(200).json({ message: 'Inquiry deleted successfully' });
+      return res.status(200).json({ success: true });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (error) {
-    console.error('Inquiries error:', error);
+    console.error('Inquiries API error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

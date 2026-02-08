@@ -1,5 +1,14 @@
 const API_BASE = '/api';
 
+// Initialize database on first load
+export const initDatabase = async () => {
+  try {
+    await fetch(`${API_BASE}/init/seed`, { method: 'GET' });
+  } catch (error) {
+    console.log('Database initialization:', error);
+  }
+};
+
 // Token management
 export const getToken = (): string | null => {
   return localStorage.getItem('auth_token');
