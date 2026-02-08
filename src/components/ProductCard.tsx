@@ -1,22 +1,18 @@
 import React, { useState } from 'react';
 import { Product } from '../types';
 import { useApp } from '../context/AppContext';
-import { useAuth } from '../context/AuthContext';
-
 interface ProductCardProps {
   product: Product;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { contactSettings, addInquiry } = useApp();
-  const { user } = useAuth();
   const [showContactModal, setShowContactModal] = useState(false);
 
   const handleContact = (platform: 'whatsapp' | 'instagram' | 'telegram') => {
     // Record the inquiry
     addInquiry({
       productName: product.name,
-      customerName: user?.username || 'Anonymous',
       platform
     });
 

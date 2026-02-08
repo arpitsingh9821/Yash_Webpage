@@ -348,7 +348,7 @@ const AdminPanel: React.FC = () => {
                   <div key={inquiry.id} className="bg-gray-900 border border-gray-700 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <p className="text-white font-semibold">{inquiry.productName}</p>
-                      <p className="text-gray-400 text-sm">Customer: {inquiry.customerName}</p>
+                      <p className="text-gray-400 text-sm">Platform: {inquiry.platform}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`px-2 py-1 rounded text-xs ${
                           inquiry.platform === 'whatsapp' ? 'bg-green-600/20 text-green-400' :

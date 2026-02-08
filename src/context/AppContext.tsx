@@ -20,9 +20,8 @@ export interface ContactSettings {
 export interface Inquiry {
   id: string;
   productName: string;
-  customerName: string;
   platform: 'whatsapp' | 'instagram' | 'telegram';
-  timestamp: Date;
+  timestamp: string;
 }
 
 interface AppContextType {
@@ -34,7 +33,7 @@ interface AppContextType {
   updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   updateContactSettings: (settings: Partial<ContactSettings>) => Promise<void>;
-  addInquiry: (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => Promise<void>;
+  addInquiry: (inquiry: { productName: string; platform: string }) => Promise<void>;
   deleteInquiry: (id: string) => Promise<void>;
   refreshData: () => Promise<void>;
 }
@@ -56,18 +55,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsLoading(true);
     try {
       // Fetch products
-      const productsResponse = await productsAPI.getAll();
-      setProducts(productsResponse.products);
+      const productsData = await productsAPI.getAll();
+      setProducts(Array.isArray(productsData) ? productsData : []);
 
       // Fetch contacts
-      const contactsResponse = await contactsAPI.get();
-      setContactSettings(contactsResponse.contacts);
+      const contactsData = await contactsAPI.get();
+      if (contactsData) {
+        setContactSettings(contactsData);
+      }
 
       // Fetch inquiries if admin
       if (user?.isAdmin) {
         try {
-          const inquiriesResponse = await inquiriesAPI.getAll();
-          setInquiries(inquiriesResponse.inquiries);
+          const inquiriesData = await inquiriesAPI.getAll();
+          setInquiries(Array.isArray(inquiriesData) ? inquiriesData : []);
         } catch {
           // Not admin or error fetching inquiries
         }
@@ -87,11 +88,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const addProduct = async (product: Omit<Product, 'id'>) => {
     try {
-      const response = await productsAPI.create({
+      const newProduct = await productsAPI.create({
         ...product,
         price: Number(product.price)
       });
-      setProducts(prev => [...prev, response.product]);
+      setProducts(prev => [...prev, newProduct]);
     } catch (error) {
       console.error('Error adding product:', error);
       throw error;
@@ -123,15 +124,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateContactSettings = async (settings: Partial<ContactSettings>) => {
     try {
-      await contactsAPI.update(settings);
-      setContactSettings(prev => ({ ...prev, ...settings }));
+      const fullSettings: ContactSettings = {
+        whatsapp: settings.whatsapp ?? contactSettings.whatsapp,
+        instagram: settings.instagram ?? contactSettings.instagram,
+        telegram: settings.telegram ?? contactSettings.telegram
+      };
+      await contactsAPI.update(fullSettings);
+      setContactSettings(fullSettings);
     } catch (error) {
       console.error('Error updating contacts:', error);
       throw error;
     }
   };
 
-  const addInquiry = async (inquiry: Omit<Inquiry, 'id' | 'timestamp'>) => {
+  const addInquiry = async (inquiry: { productName: string; platform: string }) => {
     try {
       await inquiriesAPI.create(inquiry);
     } catch (error) {
